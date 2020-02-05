@@ -12,10 +12,13 @@ struct Queue{
 	struct node *rear;
 };
 
+typedef struct Queue Queue;
+typedef struct node node;
+
 void setupQueue(struct Queue *queue);
 
 int isEmpty(struct Queue *queue);
 
-typedef struct Queue Queue;
-typedef struct node node;
+node* dequeue(Queue *queue);
+
 #endif

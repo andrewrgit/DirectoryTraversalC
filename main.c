@@ -11,10 +11,16 @@ void main(int argc, char *argv[]){
 	DIR *dirp;
 	struct stat statbuf;
 
-	struct Queue *queue = malloc(sizeof(struct Queue));
+	Queue *queue = malloc(sizeof(struct Queue));
 	setupQueue(queue);
 	printf("is queue empty: %d\n", isEmpty(queue));
-
+	printf("Adding to queue\n");
+	enqueue(queue, 4);
+	enqueue(queue, 5);
+	printf("is queue empty: %d\n", isEmpty(queue));
+	
+	node *node = dequeue(queue);
+	printf("Dequeued value: %d\n", node->value);
 	opterr = 1;
 	int hFlag = 0;
 	int LFlag = 0;
@@ -46,11 +52,18 @@ void main(int argc, char *argv[]){
 		return;
 	}
 	dirp = opendir(argv[optind]);
-	printf("argv[1] is %s", argv[1]);
+	printf("argv[1] is %s\n", argv[1]);
+	if (stat(argv[optind], &statbuf) == 0)
+		printf("Is directory: %d\n", S_ISDIR(statbuf.st_mode));
 	while ((direntp = readdir(dirp)) != NULL){
-		if(direntp->d_type==DT_UNKNOWN){
-		stat(direntp->d_name, &statbuf);
-		printf("%s Type: %u Stat: %d\n ", direntp->d_name, direntp->d_type, &statbuf.st_uid);
+		//if(direntp->d_type==DT_UNKNOWN){
+		if(stat(direntp->d_name, &statbuf) == 0){
+			printf("%s Type: %u IsDirectory: %d\n ", direntp->d_name, direntp->d_type, S_ISDIR(statbuf.st_mode));
 		}
+		else{
+			fprintf(stderr, "Failed to check file name: %s", direntp->d_name);
+			perror("Error: call to stat failed\n");
+		}
+		//}
 	}
 }
