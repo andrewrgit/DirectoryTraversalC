@@ -4,12 +4,17 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "queue.h"
 
 void main(int argc, char *argv[]){
 	struct dirent *direntp;
 	DIR *dirp;
 	struct stat statbuf;
-	
+
+	struct Queue *queue = malloc(sizeof(struct Queue));
+	setupQueue(queue);
+	printf("is queue empty: %d\n", isEmpty(queue));
+
 	opterr = 1;
 	int hFlag = 0;
 	int LFlag = 0;
