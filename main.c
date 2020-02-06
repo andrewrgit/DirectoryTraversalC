@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "queue.h"
 
 void main(int argc, char *argv[]){
@@ -14,17 +15,16 @@ void main(int argc, char *argv[]){
 
 	Queue *queue = malloc(sizeof(struct Queue));
 	setupQueue(queue);
-	printf("is queue empty: %d\n", isEmpty(queue));
-	printf("Adding to queue\n");
-	enqueue(queue, "test");
-	printf("is queue empty: %d\n", isEmpty(queue));
-	node *node = dequeue(queue);
-	printf("Dequeued value: %s\n", node->fullFilePath);
-	printf("Is queue empty: %d\n", isEmpty(queue));
+	
 	opterr = 1;
 	int hFlag = 0;
 	int LFlag = 0;
 	int dFlag = 0;
+	int gFlag = 0;
+	
+	char *LString;
+	char *dString;
+	char *gString;
 	int option;
 	
 	
@@ -51,10 +51,11 @@ void main(int argc, char *argv[]){
 		fprintf(stderr, " Usage: %s directory_name\n", argv[0]);
 		return;
 	}
+
 	enqueue(queue, argv[optind]);
 	while(isEmpty(queue) != 1){
 		char *path = (dequeue(queue))->fullFilePath;
-		printf("Dequeued %s\n", path);
+		//printf("Dequeued %s\n", path);
 		if((dirp = opendir(path)) != NULL){
 			while ((direntp = readdir(dirp)) != NULL){
 				usleep(800);
@@ -64,11 +65,24 @@ void main(int argc, char *argv[]){
 				strcat(fullPath, direntp->d_name);
 				//printf("Full Path is: %s\n", fullPath);
 				if(stat(fullPath, &statbuf) == 0){
-					printf("%s Type: %u IsDirectory: %d\n ", fullPath, direntp->d_type, S_ISDIR(statbuf.st_mode));
+
+					char outputString[64];
+					outputString[0] = '\0';
+					if(dFlag == 1){
+						
+						dString = ctime(&statbuf.st_mtime);
+						dString[strlen(dString)-1] = '\0'; //Remove newline character from ctime
+						strcat(outputString, dString);
+					}
+				
+							
+					printf("%s %s\n", outputString, fullPath);
+					
+
 					if(S_ISDIR(statbuf.st_mode) == 1){
 						if(strcmp(direntp->d_name, ".") != 0 && strcmp(direntp->d_name, "..") != 0){
 							enqueue(queue, fullPath);
-							printf("Enqued %s because direntp->d_name is %s\n", fullPath, direntp->d_name);
+							//printf("Enqueued %s because direntp->d_name is %s\n", fullPath, direntp->d_name);
 						}
 					}
 				}
@@ -77,6 +91,7 @@ void main(int argc, char *argv[]){
 					perror("Error: call to stat failed\n");
 				}
 			}
+			closedir(dirp);
 		}
 		else{
 			fprintf(stderr, "Failed to open directory %s\n", path);
@@ -84,6 +99,10 @@ void main(int argc, char *argv[]){
 		}
 	}
 
+
+
+
+	exit(0);
 	printf("argv[1] is %s\n", argv[1]);
 	if (stat(argv[optind], &statbuf) == 0)
 		printf("Is directory: %d\n", S_ISDIR(statbuf.st_mode));
