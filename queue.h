@@ -2,7 +2,7 @@
 #define QUEUE_H_
 
 struct node{
-	int value;
+	char *fullFilePath;
 	struct node *next;
 };
 
@@ -18,6 +18,8 @@ typedef struct node node;
 void setupQueue(struct Queue *queue);
 
 int isEmpty(struct Queue *queue);
+
+void enqueue(Queue *queue, char *value);
 
 node* dequeue(Queue *queue);
 
