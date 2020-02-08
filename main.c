@@ -21,10 +21,18 @@ void main(int argc, char *argv[]){
 	int LFlag = 0;
 	int dFlag = 0;
 	int gFlag = 0;
+	int iFlag = 0;
+	int pFlag = 0;
+	int sFlag = 0;
+	int tFlag = 0;
+	int uFlag = 0;
 	
 	char *LString;
 	char *dString;
 	char *gString;
+	char *iString;
+
+	char *tString;
 	int option;
 	
 	
