@@ -1,13 +1,14 @@
 CC=gcc
-CFLAGS= -g -Wall
+CFLAGS= -g
 Dependancies = queue.h
 objects = main.o queue.o
 
-%.o %.c $(Dependancies)
+%.o: %.c $(Dependancies)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-main.o : queue.h
-queue.o : queue.h
+bt: $(objects)
+	$(CC) -o $@ $^ $(CFLAGS)
 
 clean:
-	rm *.o
+	rm -f *.o
+	rm -f bt
