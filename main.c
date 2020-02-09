@@ -9,7 +9,7 @@
 #include <libgen.h>
 #include "queue.h"
 
-void main(int argc, char *argv[]){
+int main(int argc, char *argv[]){
 	struct dirent *direntp;
 	DIR *dirp;
 	struct stat statbuf;
@@ -60,7 +60,9 @@ void main(int argc, char *argv[]){
 			case 'g':
 				gFlag = 1;
 				break;
-	
+			case 's':
+				sFlag = 1;
+				break;
 			case 'p':
 				pFlag = 1;
 				break;
@@ -72,14 +74,21 @@ void main(int argc, char *argv[]){
 		}
 	}
 	
-	if (hFlag == 1){
-		printf("Usage: %s directory_name\n", argv[0]);
+	if (hFlag == 1 || argc - optind > 1){
+		char *bufName = malloc(strlen(execName) + 1);
+		strcpy(bufName, execName);
+		printf("Usage: %s [directory_name] [-options]\n"
+		"Options:\n"
+		"	-h : Print help message\n"
+		"	-L : Follow symbolic links\n"
+		"	-t : Print file type\n"
+		"	-p : Print permissions\n"
+		"	-i : Print number of links in inode table\n"
+		"	-u : Print the UID\n"
+		"	-g : Print the GID\n"
+		"	-s : Print file size\n"
+		"	-d : Show time of last modification\n", bufName);
 		exit(0);
-	}
-	
-	if (argc - optind > 1){
-		fprintf(stderr, " Usage: %s directory_name\n", argv[0]);
-		return;
 	}
 
 	enqueue(queue, argv[optind]);
@@ -88,13 +97,38 @@ void main(int argc, char *argv[]){
 		//printf("Dequeued %s\n", path);
 		if((dirp = opendir(path)) != NULL){
 			while ((direntp = readdir(dirp)) != NULL){
-				usleep(800);
 				char *fullPath = malloc(strlen(path) + strlen(direntp->d_name) + 2);
 				strcpy(fullPath, path);
 				strcat(fullPath, "/");
 				strcat(fullPath, direntp->d_name);
 				//printf("Full Path is: %s\n", fullPath);
-				if(stat(fullPath, &statbuf) == 0){
+				int statSucceeded = 0;
+				if(LFlag == 1){
+					if(lstat(fullPath, &statbuf) == 0){
+						statSucceeded = 1;
+					}
+					else{
+						fprintf(stderr, "Failed to check file name: %s with fullPath %s\n", direntp->d_name, fullPath);
+						char *bufName = malloc(strlen(execName) + 1);
+						strcpy(bufName, execName);
+						perror(strcat(bufName, ": Error: Call to lstat failed\n"));
+						statSucceeded = 0;
+					}
+				}
+				else{
+					if(stat(fullPath, &statbuf) == 0){
+						statSucceeded = 1;
+					}
+					else{
+						fprintf(stderr, "Failed to check file name: %s with fullPath %s\n", direntp->d_name, fullPath);
+						char *bufName = malloc(strlen(execName) + 1);
+						strcpy(bufName, execName);
+						perror(strcat(bufName, ": Error: Call to stat failed\n"));
+						statSucceeded = 0;
+					}
+				}
+
+				if(statSucceeded == 1){
 
 					char outputString[600];
 					outputString[0] = '\0';
@@ -119,7 +153,7 @@ void main(int argc, char *argv[]){
 					}
 
 					if(pFlag == 1){
-						char pString[10]; //Allocate 10 bits for permission string plus null terminator
+						char pString[10]; //Allocate 10 bytes for permission string plus null terminator
 						
 						//Use bitwise operator on bits of the st_mode and bits of the macros for permission bits
 						//Use ternary operator to determine if the expression is true, then set the corresponding
@@ -143,6 +177,11 @@ void main(int argc, char *argv[]){
 						sprintf(numOfLinks, "%d", statbuf.st_nlink);
 						strcat(outputString, " Num of links: ");
 						strcat(outputString, numOfLinks);
+						if(strlen(numOfLinks) == 2){
+							strcat(outputString, " ");
+						}else if(strlen(numOfLinks) == 1){
+							strcat(outputString, "  ");
+						}
 					}
 					if(uFlag == 1){
 						char UID[100];
@@ -157,6 +196,29 @@ void main(int argc, char *argv[]){
 						sprintf(GID, " GID: %u ", statbuf.st_gid);
 						strcat(outputString, GID);
 					}
+					if(sFlag == 1){
+						char size[100];
+						size[0] = '\0';
+						if(statbuf.st_size >= 1024 && statbuf.st_size < 1048576){
+							int fileSize = statbuf.st_size/1024;
+							sprintf(size, " Size: %dK ", fileSize);
+						}else if(statbuf.st_size >= 1048576 && statbuf.st_size < 1073741824){
+							int fileSize = statbuf.st_size/1048576;
+							sprintf(size, " Size: %dM ", fileSize);
+						}else if(statbuf.st_size >= 1073741824){
+							int fileSize = statbuf.st_size/1073741824;
+							sprintf(size, " Size: %dG ", fileSize);
+						}else{
+						sprintf(size, " Size: %d ", statbuf.st_size);
+						}
+						strcat(outputString, size);
+						if(strlen(size) <= 15 && strlen(size) > 8){
+							int i;
+							for (i = 0; i < (int)(13 - strlen(size)); i++){
+								strcat(outputString, " ");
+							}
+						}
+					}
 					printf("%s %s\n", outputString, fullPath);
 					
 
@@ -167,16 +229,15 @@ void main(int argc, char *argv[]){
 						}
 					}
 				}
-				else{
-					fprintf(stderr, "Failed to check file name: %s with fullPath %s\n", direntp->d_name, fullPath);
-					perror(strcat(execName, ": Error: Call to stat failed\n"));
-				}
 			}
 			closedir(dirp);
 		}
 		else{
 			fprintf(stderr, "Failed to open directory %s\n", path);
-			perror("Error: failed to open directory");
+			char *bufName = malloc(strlen(execName) + 1);
+			strcpy(bufName, execName);
+			perror(strcat(bufName, ": Error: Call to opendir failed"));
 		}
 	}
+	return 0;
 }
