@@ -1,3 +1,8 @@
+//Author: Andrew Riebow
+//Title: Directory Searcher
+//Email: asrm8d@mail.umsl.edu
+//Date completed: 02/10/2020
+
 #include <stdio.h>
 #include <dirent.h>
 #include <sys/stat.h>
@@ -10,16 +15,22 @@
 #include "queue.h"
 
 int main(int argc, char *argv[]){
+	//Create buffers to hold our dirent and stat structs, and a directory stream for the open directory
 	struct dirent *direntp;
 	DIR *dirp;
 	struct stat statbuf;
 
+	//Create our queue and call our initialization method
 	Queue *queue = malloc(sizeof(struct Queue));
 	setupQueue(queue);
 	
+	//Create a pointer to our executable with the ./ stripped out for error messages
 	char *execName = basename(argv[0]);
 
+	//Set opterr to 1 so error messages are displayed when getopt runs into an issue
 	opterr = 1;
+
+	//Create a variable for each flag so we know if that option was entered. 0 = false, 1 = true
 	int hFlag = 0;
 	int LFlag = 0;
 	int dFlag = 0;
@@ -29,17 +40,17 @@ int main(int argc, char *argv[]){
 	int sFlag = 0;
 	int tFlag = 0;
 	int uFlag = 0;
+	int lFlag = 0;
 	
+	//Create strings to hold data about the file that we can then append to our final output string
 	char *LString;
 	char *dString;
 	char *gString;
 	char *iString;
-
-
 	char *tString;
-	int option;
+	int option; //Variable to hold our option
 	
-	
+	//use get opt to set flags depending on which options were selected
 	while ((option = getopt (argc, argv, "hLdgipstul")) != -1){
 		switch(option){
 			case 'h':
@@ -66,7 +77,9 @@ int main(int argc, char *argv[]){
 			case 'p':
 				pFlag = 1;
 				break;
-
+			case 'l':
+				lFlag = 1;
+				break;
 			case 't':
 				tFlag = 1;
 				break;
@@ -74,6 +87,7 @@ int main(int argc, char *argv[]){
 		}
 	}
 	
+	//if h option is input, output a help message and exit. Or, if there is more than 1 argument left after the options have been stripped out
 	if (hFlag == 1 || argc - optind > 1){
 		char *bufName = malloc(strlen(execName) + 1);
 		strcpy(bufName, execName);
@@ -87,24 +101,25 @@ int main(int argc, char *argv[]){
 		"	-u : Print the UID\n"
 		"	-g : Print the GID\n"
 		"	-s : Print file size\n"
-		"	-d : Show time of last modification\n", bufName);
+		"	-d : Show time of last modification\n"
+		"	-l : One option to count for -tipugsd options", bufName);
 		exit(0);
 	}
-
+	//use our custom enqueue method to add our argument to the queue
 	enqueue(queue, argv[optind]);
-	while(isEmpty(queue) != 1){
-		char *path = (dequeue(queue))->fullFilePath;
-		//printf("Dequeued %s\n", path);
-		if((dirp = opendir(path)) != NULL){
-			while ((direntp = readdir(dirp)) != NULL){
-				char *fullPath = malloc(strlen(path) + strlen(direntp->d_name) + 2);
-				strcpy(fullPath, path);
+	while(isEmpty(queue) != 1){//Repeat until the queue is empty
+		char *path = (dequeue(queue))->fullFilePath; //Set a pointer to the filepath dequeued from the queue
+
+		if((dirp = opendir(path)) != NULL){ //Open a directory stream using our filepath we dequeued
+			while ((direntp = readdir(dirp)) != NULL){//While there are entries left in the directory to read
+				char *fullPath = malloc(strlen(path) + strlen(direntp->d_name) + 2); //Allocate memory for a string to hold the path, name of the file, and 2 extra bytes for a / and '0
+				strcpy(fullPath, path);//Create our new filepath by appending the correct strings to the front of it
 				strcat(fullPath, "/");
 				strcat(fullPath, direntp->d_name);
-				//printf("Full Path is: %s\n", fullPath);
-				int statSucceeded = 0;
-				if(LFlag == 1){
-					if(lstat(fullPath, &statbuf) == 0){
+
+				int statSucceeded = 0;//Create a 'bool' to hold whether or not our stat calls were successful
+				if(LFlag == 1){//If the -L option to follow symbolic links is selected, we call lstat instead of stat
+					if(lstat(fullPath, &statbuf) == 0){//Get information about the file, following symbolic links
 						statSucceeded = 1;
 					}
 					else{
@@ -116,7 +131,7 @@ int main(int argc, char *argv[]){
 					}
 				}
 				else{
-					if(stat(fullPath, &statbuf) == 0){
+					if(stat(fullPath, &statbuf) == 0){//Call the normal stat if -L option was not entered
 						statSucceeded = 1;
 					}
 					else{
@@ -128,18 +143,21 @@ int main(int argc, char *argv[]){
 					}
 				}
 
-				if(statSucceeded == 1){
+				if(statSucceeded == 1){//If our stat call was successful
 
-					char outputString[600];
-					outputString[0] = '\0';
-					if(dFlag == 1){
+					char outputString[600];//Create a string with sufficient memory to hold our output
+					outputString[0] = '\0';//Reset the string 
+
+					//Last modification date
+					if(dFlag == 1 || lFlag == 1){//We also will output this if -l option is selected which will output all extra information
 						
 						dString = ctime(&statbuf.st_mtime);
 						dString[strlen(dString)-1] = '\0'; //Remove newline character from ctime
 						strcat(outputString, dString);
 					}
 					
-					if(tFlag == 1){
+					//File type information
+					if(tFlag == 1 || lFlag == 1){
 						if(S_ISREG(statbuf.st_mode)){
 							tString = " Regular File  ";
 						}
@@ -152,7 +170,8 @@ int main(int argc, char *argv[]){
 						strcat(outputString, tString);
 					}
 
-					if(pFlag == 1){
+					//Print permission bits
+					if(pFlag == 1 || lFlag == 1){
 						char pString[10]; //Allocate 10 bytes for permission string plus null terminator
 						
 						//Use bitwise operator on bits of the st_mode and bits of the macros for permission bits
@@ -171,7 +190,8 @@ int main(int argc, char *argv[]){
 						strcat(outputString, pString);
 					}
 				
-					if(iFlag == 1){
+					//Print number of links from the inode table
+					if(iFlag == 1 || lFlag == 1){
 						char numOfLinks[10];
 						numOfLinks[0] = '\0';
 						sprintf(numOfLinks, "%d", statbuf.st_nlink);
@@ -183,20 +203,25 @@ int main(int argc, char *argv[]){
 							strcat(outputString, "  ");
 						}
 					}
-					if(uFlag == 1){
+
+					//Print the UID
+					if(uFlag == 1 || lFlag == 1){
 						char UID[100];
 						UID[0] = '\0';
 						sprintf(UID, " UID: %u", statbuf.st_uid);
 						strcat(outputString, UID);
 					}
 		
-					if(gFlag == 1){
+					//Print the GID
+					if(gFlag == 1 || lFlag == 1){
 						char GID[100];
 						GID[0] = '\0';
 						sprintf(GID, " GID: %u ", statbuf.st_gid);
 						strcat(outputString, GID);
 					}
-					if(sFlag == 1){
+
+					//Print the file size
+					if(sFlag == 1 || lFlag == 1){
 						char size[100];
 						size[0] = '\0';
 						if(statbuf.st_size >= 1024 && statbuf.st_size < 1048576){
@@ -212,6 +237,8 @@ int main(int argc, char *argv[]){
 						sprintf(size, " Size: %d ", statbuf.st_size);
 						}
 						strcat(outputString, size);
+
+						//In this if statement, I append extra spaces to the end of the size file if it is shorter than normal, so the output stays formatted well
 						if(strlen(size) <= 15 && strlen(size) > 8){
 							int i;
 							for (i = 0; i < (int)(13 - strlen(size)); i++){
@@ -219,18 +246,17 @@ int main(int argc, char *argv[]){
 							}
 						}
 					}
-					printf("%s %s\n", outputString, fullPath);
+					printf("%s %s\n", outputString, fullPath);//Output our final string for this file
 					
-
+					//If the file we are looking at is a directory, enqueue it
 					if(S_ISDIR(statbuf.st_mode) == 1){
 						if(strcmp(direntp->d_name, ".") != 0 && strcmp(direntp->d_name, "..") != 0){
 							enqueue(queue, fullPath);
-							//printf("Enqueued %s because direntp->d_name is %s\n", fullPath, direntp->d_name);
 						}
 					}
 				}
 			}
-			closedir(dirp);
+			closedir(dirp);//Close the directory stream
 		}
 		else{
 			fprintf(stderr, "Failed to open directory %s\n", path);
@@ -239,5 +265,5 @@ int main(int argc, char *argv[]){
 			perror(strcat(bufName, ": Error: Call to opendir failed"));
 		}
 	}
-	return 0;
+	return 0;//Return 0 for a successful execution
 }

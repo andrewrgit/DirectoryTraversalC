@@ -1,0 +1,31 @@
+Andrew Riebow
+README
+02/10/2020
+
+In order to run this program, you should compile it by entering the 'make' command
+This will search the folder for .c files and compile them to their corresponding .o files
+You can clean the directory and remove the .o files and executables using 'make clean'
+The executable will be named 'bt'. Enter './bt -h' for a list of options to use with the program, or see below:
+
+Usage: bt [directory_name] [-options]
+                Options:
+                       -h : Print help message
+                       -L : Follow symbolic links
+                       -t : Print file type
+                       -p : Print permissions
+                       -i : Print number of links in inode table
+                       -u : Print the UID
+                       -g : Print the GID
+                       -s : Print file size
+                       -d : Show time of last modification
+		       -l : Outputs file info as if options -tpiugsd were all chosen
+
+Problems encountered:
+
+During development of this program, I ran into a lot of problems.
+
+One example was when I was using ctime, and it was giving me unexpected behavior.
+I realized that this was because I had not included the time.h header file, but it was still compiling and producing bad results.
+
+Another problem that took me awhile was figuring out how to access files in another directory. Just using the stat struct, you are only given the filename,
+and not the full/relative path. So I started appending the argument from the user onto the beginning of the path each time and storing that in my queue.
