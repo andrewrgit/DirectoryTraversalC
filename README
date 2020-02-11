@@ -2,7 +2,7 @@ Andrew Riebow
 README
 02/10/2020
 
-In order to run this program, you should compile it by entering the 'make' command
+In order to run this program, you should compile it by entering the 'make' command. Git was used as version control.
 This will search the folder for .c files and compile them to their corresponding .o files
 You can clean the directory and remove the .o files and executables using 'make clean'
 The executable will be named 'bt'. Enter './bt -h' for a list of options to use with the program, or see below:
